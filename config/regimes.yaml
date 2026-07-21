@@ -1,0 +1,131 @@
+# regimes.yaml
+# The seven manuscript regimes (Part C of the Manuscript Engineering
+# Cookbook), externalized so new regimes or edits don't require touching
+# app.py. Loaded into the `regimes` table by Admin -> Run Ingest.
+#
+# Every regime gets: sections (in build order, "Abstract" and "Title" are
+# universal front-matter), evidence_fields (rendered as the Step 2 form),
+# and drafting-time hints (A9-A15) attached to the section they apply to.
+
+regimes:
+  - code: C1
+    label: "Methodology paper"
+    description: "Introduces a reusable procedure, demonstrated on worked case(s)."
+    regime_statement_template: "This is a methodology paper, so its job is to establish a reusable procedure, not to prove one domain finding."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition to this manuscript. No lint tool catches stale framing."}
+      - {name: "Related Work", hint: null}
+      - {name: "Methods", hint: "A14 — any step requiring real expert judgment must leave a documented trail (what was considered, excluded, why), not be presented as automatic. A9 — if an operation is described in prose more than once, give it compact formal notation instead."}
+      - {name: "Worked Case", hint: "A12 — retest any classification framework introduced partway through against every claim already written, not just claims made afterward."}
+      - {name: "Results", hint: "A10 — descriptive artifact first, evaluation second. A15 — if grading your own evidence quality, adapt an established framework from an adjacent field, scope it explicitly, and report the real result."}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques once real findings exist, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+      - {name: "Future Directions", hint: null}
+    evidence_fields:
+      - {key: "cases", label: "Worked case(s), comma-separated", type: "text", required: true}
+      - {key: "principles", label: "Named procedural principles, comma-separated", type: "text", required: true}
+    unlock_rule: null
+
+  - code: C2
+    label: "Empirical/evidence paper"
+    description: "A dataset and what it does/doesn't support."
+    regime_statement_template: "This is an empirical paper, so its job is to establish what the dataset shows, not to explain why."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition."}
+      - {name: "Related Work", hint: null}
+      - {name: "Data and Methods", hint: "A10 — keep description (what the data shows) and evaluation (what it means) as visibly separate stages."}
+      - {name: "Results", hint: "A10 — descriptive artifact first, evaluation second."}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+      - {name: "Future Directions", hint: null}
+    evidence_fields:
+      - {key: "source", label: "Evidence source (path/DB/description)", type: "text", required: true}
+      - {key: "claim_query", label: "Query/tally that supports your central claim (draft the query before the sentence)", type: "textarea", required: true}
+    unlock_rule: "claim_query_required"
+
+  - code: C3
+    label: "Theoretical/framework paper"
+    description: "Internal coherence of a conceptual system."
+    regime_statement_template: "This is a theoretical paper, so its job is to organize the domain coherently and state what would count against it, not to report new data."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition."}
+      - {name: "Related Work", hint: null}
+      - {name: "Framework Overview", hint: null}
+      - {name: "Dimensions", hint: null}
+      - {name: "Falsifiability", hint: null}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+    evidence_fields:
+      - {key: "dimensions", label: "Framework dimensions/concepts, comma-separated", type: "text", required: true}
+      - {key: "falsification", label: "For each dimension: what observed result would count against it? (one per line, 'dimension: sentence')", type: "textarea", required: true}
+    unlock_rule: "falsification_per_dimension"
+
+  - code: C4
+    label: "Existence/registration claim"
+    description: "A minimal, defensible assertion that X exists / is measurable."
+    regime_statement_template: "This is an existence-claim paper, so its job is to establish that X exists/is measurable, not to explain why or what follows from it."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition."}
+      - {name: "Related Work", hint: null}
+      - {name: "Methods", hint: null}
+      - {name: "Results", hint: "A10 — descriptive artifact first, evaluation second."}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+    evidence_fields:
+      - {key: "secondary_claims_flagged", label: "Secondary claims you're tempted to include (checked they don't belong to a later paper)", type: "textarea", required: false}
+    unlock_rule: null
+
+  - code: C5
+    label: "Systematic review/synthesis"
+    description: "Coverage and inclusion criteria, not narrative argument."
+    regime_statement_template: "This is a systematic review, so its job is to report what the literature within stated criteria shows, not to argue a position."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition."}
+      - {name: "Inclusion Criteria", hint: null}
+      - {name: "Search Methods", hint: null}
+      - {name: "Results", hint: "A10 — descriptive artifact first, evaluation second."}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+      - {name: "Future Directions", hint: null}
+    evidence_fields:
+      - {key: "criteria", label: "Inclusion/exclusion criteria (state before any search runs)", type: "textarea", required: true}
+    unlock_rule: "criteria_locked"
+
+  - code: C6
+    label: "Infrastructure/software paper"
+    description: "The tool itself; paper is a wrapper."
+    regime_statement_template: "This is an infrastructure paper, so its job is to demonstrate the tool solves a stated problem, not to list its features."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition."}
+      - {name: "Problem and Failure Case", hint: null}
+      - {name: "Tool Design", hint: null}
+      - {name: "Evaluation", hint: null}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+    evidence_fields:
+      - {key: "failure_case", label: "Concrete failure case your tool prevents (required before any feature list)", type: "textarea", required: true}
+      - {key: "repo", label: "Repository link", type: "text", required: false}
+    unlock_rule: "failure_case_required"
+
+  - code: C7
+    label: "Meta-methodology/perspective paper"
+    description: "About a practice or method itself, not a domain finding."
+    regime_statement_template: "This is a meta-methodology paper, so its job is to document a working practice honestly, not to claim a validated methodology."
+    sections:
+      - {name: "Limitations", hint: "MUST be drafted first — state the evidence base honestly before Introduction's novelty claim gets its final phrasing."}
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "A13 — re-check title/abstract/roadmap framing after every structural addition."}
+      - {name: "Related Work", hint: null}
+      - {name: "Practice", hint: null}
+      - {name: "Worked Case", hint: "A12 — retest any classification framework introduced partway through against every claim already written."}
+      - {name: "Discussion", hint: "A11 — draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Future Directions", hint: null}
+    evidence_fields:
+      - {key: "evidence_base", label: "Evidence base, stated honestly (e.g. 'N=1 worked case')", type: "text", required: true}
+    unlock_rule: "evidence_base_required"

@@ -1,0 +1,33 @@
+# settings.yaml
+# Everything a researcher would need to personalize for their own use of
+# this reference implementation lives here — nothing personal is hardcoded
+# in app.py. Edit this file, then use Admin -> Run Ingest to load it into
+# the database (the same ingest pattern used in QHE / Feature Annexation).
+
+author:
+  name: "Prasanna Varun Karmarkar"
+  orcid: "0009-0006-2284-6914"
+  github: "prakar"
+  affiliation: "Independent Researcher"
+
+attribution:
+  footer_text: >
+    Manuscript Engineer — reference implementation by {name} ({orcid}).
+    This is a reference implementation accompanying a paper submitted for
+    peer review. Not a validated or endorsed research tool; scaffolds
+    manuscript structure only, does not generate scientific content or
+    claims.
+  repo_url: "https://github.com/prakar/manuscript-engineer"
+
+app:
+  title: "Manuscript Engineer"
+  tagline: "Regime-aware manuscript scaffolding — construction, not content."
+
+admin:
+  # Change this before deploying anywhere non-local. Stored in plaintext
+  # here deliberately, matching the FAO/QHE pattern of a simple local
+  # gate, not a real auth system — this is a reference implementation.
+  password: "changeme"
+
+database:
+  path: "db/manuscript_engineer.sqlite3"

@@ -1,0 +1,13 @@
+# llm_config.yaml
+# API keys for optional future LLM-assisted features (not used by v0 —
+# v0 has no AI-generated content, per the tool's own claim boundary).
+# Present now so the Admin panel has a real text-config surface to edit,
+# and so a future version can wire in e.g. citation-verification lookups
+# or drafting-assistance prompts without changing the config shape.
+#
+# Do not commit real keys to a public repo. Add this file to .gitignore
+# in any real deployment; it ships here with placeholders only.
+
+anthropic_api_key: ""
+openai_api_key: ""
+gemini_api_key: ""
