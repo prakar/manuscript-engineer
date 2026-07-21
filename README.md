@@ -1,15 +1,11 @@
 # Manuscript Engineer — Streamlit Reference Implementation
 
-Same tool as `manuscript-engineer` (the CLI/Node version), rebuilt as a
-Streamlit app with a SQLite backend, following the config → ingest →
-database pattern used in the Feature Annexation Observatory and QHE apps.
+Scaffolds a regime-correct, structurally-organized manuscript shell
+through a step-by-step flow mirroring a SAGE/Elsevier submission system.
 
-**What this does:** scaffolds a regime-correct, structurally-organized
-manuscript shell through a step-by-step flow mirroring a typical SAGE/
-Elsevier submission system. **What this does not do:** generate your
-paper's content, evaluate your claims, or replace domain judgment — see
-the landing page and every section's colophon note for this boundary
-stated explicitly.
+**What this does not do:** generate manuscript content, evaluate claims,
+or replace domain judgment. Stated on the landing page and in every
+exported document's colophon.
 
 ## Quickstart (Codespaces)
 
@@ -19,19 +15,11 @@ python3 ingest.py          # loads config/*.yaml into db/manuscript_engineer.sql
 streamlit run app.py
 ```
 
-This environment had no network access to install `streamlit` itself, so
-the Streamlit UI (`app.py`) is syntax-checked but not runtime-tested here.
-Every module it depends on (`core/db.py`, `core/unlock_rules.py`,
-`core/docx_export.py`, `ingest.py`) has no Streamlit import and **was**
-exercised end-to-end locally, including the blind-mode redaction path —
-run `streamlit run app.py` in Codespaces first thing and report back
-anything that doesn't render as expected.
-
 ## Personalization — everything externalized
 
 Nothing personal is hardcoded in `app.py`. Edit these, then re-run ingest:
 
-- **`config/settings.yaml`** — your name, ORCID, affiliation, footer
+- **`config/settings.yaml`** — name, ORCID, affiliation, footer
   attribution text, app title/tagline, admin password, DB path.
 - **`config/regimes.yaml`** — the 7 manuscript regimes: sections, drafting-
   time hints (A9–A15), evidence-intake fields, field-unlock rule name. Add
@@ -43,19 +31,18 @@ Nothing personal is hardcoded in `app.py`. Edit these, then re-run ingest:
 
 ## The ingest pattern
 
-Matches FAO/QHE: the app never reads YAML directly at runtime — it reads
-the SQLite database, which is only populated by `ingest.py`. Edit a YAML
-file, then either run `python3 ingest.py` from the command line or click
-**Admin → Run Ingest** in the app. This makes config changes a deliberate,
-visible, re-runnable step rather than something the app silently picks up.
+The app reads only from the SQLite database, never directly from YAML.
+Edit a YAML file, then either run `python3 ingest.py` or click
+**Admin → Run Ingest** in the app. Config changes take effect on ingest,
+not on save.
 
 ## Admin panel
 
 Sidebar → Admin, password from `config/settings.yaml` (`admin.password`,
-default `changeme` — **change this before deploying anywhere non-local**).
+default `changeme` — change before any non-local deployment).
 
 - **Run Ingest** — reloads regimes/settings from YAML into the DB.
-- **Current regimes in DB** — quick sanity view.
+- **Current regimes in DB** — sanity view.
 - **LLM API keys** — text-config editor for `config/llm_config.yaml`.
 
 ## UI flow
@@ -70,16 +57,18 @@ default `changeme` — **change this before deploying anywhere non-local**).
 | 5. Review & Verify | "Review and submit" | Completion check before download |
 | 6. Download | "Confirmation" | .docx scaffold download |
 
-## Known gaps / next iteration
+## Known gaps
 
-- Blind-mode redaction in `docx_export.py` is a scaffold convenience
-  (string replace on section content) — **not** equivalent to
-  `blind_check_template.js`'s check against real rendered XML. Stated in
-  the exported doc's colophon; worth deciding whether the web app should
-  eventually shell out to the actual Node blind-check tool instead of
-  approximating it in Python.
-- No multi-user auth beyond the single admin password (matches the FAO/QHE
-  reference-implementation pattern — not a real auth system).
-- A9–A15 hints are shown as read-only notes during editing; nothing
-  currently enforces them the way field-unlock rules do (matches the CLI
-  version's own design choice — these are judgment calls, not lint-able).
+- Blind-mode redaction in `docx_export.py` is a string-replace on section
+  content — not equivalent to `blind_check_template.js`'s check against
+  real rendered XML. Stated in the exported doc's colophon. A later
+  iteration should shell out to the actual Node blind-check tool instead
+  of approximating it in Python.
+- No multi-user auth beyond the single admin password.
+- A9–A15 hints display as read-only notes during editing. Nothing
+  enforces them the way field-unlock rules do — they are judgment calls,
+  not lint-able conditions.
+- SQLite connection uses `check_same_thread=False` to survive Streamlit's
+  rerun model. Permissive, not concurrency-safe — fine for single-user
+  use, not for concurrent users. Fix before any multi-user deployment:
+  per-request connections, or WAL mode.
