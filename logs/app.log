@@ -1,0 +1,12 @@
+2026-07-21 19:05:13 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:13 [INFO] manuscript_engineer: New session started.
+2026-07-21 19:05:13 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-21 19:05:19 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:21 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:21 [WARNING] manuscript_engineer: Admin login attempt failed (incorrect password).
+2026-07-21 19:05:22 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:48 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:53 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:53 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-21 19:05:53 [WARNING] manuscript_engineer: Admin login attempt failed (incorrect password).
+2026-07-21 19:05:58 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
