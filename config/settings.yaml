@@ -14,14 +14,14 @@ attribution:
   footer_text: >
     Manuscript Engineer — reference implementation by {name} ({orcid}).
     This is a reference implementation accompanying a paper submitted for
-    peer review. Not a validated or endorsed research tool; scaffolds
+    peer review. Not a validated or endorsed research tool; builds
     manuscript structure only, does not generate scientific content or
     claims.
   repo_url: "https://github.com/prakar/manuscript-engineer"
 
 app:
   title: "Manuscript Engineer"
-  tagline: "Regime-aware manuscript scaffolding — construction, not content."
+  tagline: "Structured manuscript building — construction, not content."
 
 admin:
   # Change this before deploying anywhere non-local. Stored in plaintext

@@ -20,32 +20,38 @@ def export_manuscript(manuscript, sections, footer_text, blind=False,
     """
     doc = DocxDocument()
 
-    doc.add_heading(manuscript.get("title") or "[[TODO: title]]", level=0)
-    doc.add_paragraph(f"Regime statement: {manuscript.get('regime_statement', '')}")
-    doc.add_paragraph(f"Central claim: {manuscript.get('claim', '')}")
-
     identifying_strings = identifying_strings or []
+
+    def _redact(text):
+        if not blind:
+            return text
+        for s in identifying_strings:
+            if s and s in text:
+                text = text.replace(s, "[REDACTED]")
+        return text
+
+    doc.add_heading(_redact(manuscript.get("title") or "[[TODO: title]]"), level=0)
+    doc.add_paragraph(f"Regime statement: {_redact(manuscript.get('regime_statement', ''))}")
+    doc.add_paragraph(f"Central claim: {_redact(manuscript.get('claim', ''))}")
+
     for sec in sections:
         doc.add_heading(sec["name"], level=1)
         content = sec.get("content") or f"[[TODO: draft {sec['name']} content]]"
         if sec.get("hint"):
             doc.add_paragraph(f"[[Drafting note: {sec['hint']}]]").italic = True
-        if blind:
-            for s in identifying_strings:
-                if s and s in content:
-                    content = content.replace(s, "[REDACTED]")
+        content = _redact(content)
         doc.add_paragraph(content)
 
     doc.add_page_break()
     colophon = (
-        "This document is a manuscript SCAFFOLD, not a finished or "
+        "This document is a structured DRAFT, not a finished or "
         "reviewed manuscript. "
     )
     if blind:
         colophon += (
-            "Blind-mode redaction above is a best-effort scaffold "
-            "convenience only — before real submission, verify the actual "
-            "rendered artifact with blind_check_template.js, not this note. "
+            "Name/institution redaction above is a best-effort convenience "
+            "only — before real submission, verify the actual document with "
+            "blind_check_template.js, not this note. "
         )
     colophon += footer_text
     p = doc.add_paragraph(colophon)

@@ -10,3 +10,114 @@
 2026-07-21 19:05:53 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
 2026-07-21 19:05:53 [WARNING] manuscript_engineer: Admin login attempt failed (incorrect password).
 2026-07-21 19:05:58 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:12:53 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:12:53 [INFO] manuscript_engineer: New session started.
+2026-07-22 15:12:53 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-22 15:13:12 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:13:25 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:13:26 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:13:26 [INFO] manuscript_engineer: New session started.
+2026-07-22 15:13:29 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:13:31 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:13:31 [WARNING] manuscript_engineer: Admin login attempt failed (incorrect password).
+2026-07-22 15:15:34 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:15:34 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:15:34 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-22 15:15:34 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:16:35 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:19:42 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:19:42 [INFO] manuscript_engineer: New session started.
+2026-07-22 15:19:42 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-22 15:19:45 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:20:11 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:20:13 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:20:16 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:20:20 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:20:24 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:21:57 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:22:02 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:22:06 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:22:06 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-22 15:22:06 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 15:22:38 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:52:42 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:52:42 [INFO] manuscript_engineer: New session started.
+2026-07-22 17:52:42 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-22 17:52:45 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:52:52 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:52:59 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:53:00 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:53:00 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-22 17:53:00 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:54:11 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:54:11 [INFO] manuscript_engineer: New session started.
+2026-07-22 17:54:11 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-22 17:54:16 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:54:20 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:54:21 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:54:21 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-22 17:54:21 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 17:54:31 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 18:23:31 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-22 18:23:57 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:51:43 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:51:43 [INFO] manuscript_engineer: New session started.
+2026-07-23 04:51:44 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 04:51:50 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:52:51 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:52:56 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:52:56 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:52:56 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-23 04:52:56 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 04:53:36 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:33:17 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:33:17 [INFO] manuscript_engineer: New session started.
+2026-07-23 05:33:17 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 05:33:21 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:33:24 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:28 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:28 [INFO] manuscript_engineer: New session started.
+2026-07-23 05:35:28 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 05:35:35 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:39 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:39 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:39 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-23 05:35:39 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:41 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:35:41 [INFO] manuscript_engineer: [ingest] Ingested 10 settings keys.
+2026-07-23 05:35:41 [INFO] manuscript_engineer: [ingest] Ingested 7 regimes.
+2026-07-23 05:35:41 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 05:37:56 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:37:58 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:38:31 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:38:32 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:38:32 [INFO] manuscript_engineer: User started a new manuscript from the landing page.
+2026-07-23 05:38:32 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:38:52 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:48:49 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:48:53 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:48:58 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:48:58 [INFO] manuscript_engineer: Step 1 complete: regime=C1, title=''
+2026-07-23 05:48:58 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:16 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:16 [INFO] manuscript_engineer: New session started.
+2026-07-23 05:54:16 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 05:54:18 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:21 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:23 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:32 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:42 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:47 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:47 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:47 [INFO] manuscript_engineer: Admin login succeeded.
+2026-07-23 05:54:47 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:51 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:54:51 [INFO] manuscript_engineer: [ingest] Ingested 10 settings keys.
+2026-07-23 05:54:51 [INFO] manuscript_engineer: [ingest] Ingested 7 regimes.
+2026-07-23 05:54:51 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 05:55:05 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 05:55:09 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 06:01:14 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.
+2026-07-23 06:01:14 [INFO] manuscript_engineer: New session started.
+2026-07-23 06:01:14 [INFO] manuscript_engineer: Database connected and schema ensured at /workspaces/manuscript-engineer/db/manuscript_engineer.sqlite3
+2026-07-23 06:01:19 [INFO] manuscript_engineer: app.py module loaded / Streamlit rerun triggered.

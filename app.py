@@ -42,6 +42,7 @@ two audiences want different levels of detail.
 """
 
 import datetime
+import hashlib
 import io
 import logging
 import os
@@ -50,7 +51,7 @@ import sys
 import streamlit as st
 import yaml
 
-from core import db, unlock_rules, docx_export, llm_keys
+from core import db, unlock_rules, docx_export, llm_keys, tool_runner, structural_check
 
 # --------------------------------------------------------------------
 # Logging setup
@@ -98,6 +99,28 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 SETTINGS_PATH = os.path.join(CONFIG_DIR, "settings.yaml")
 LLM_CONFIG_PATH = os.path.join(CONFIG_DIR, "llm_config.yaml")
+TOOLS_DIR = os.path.join(BASE_DIR, "cookbook_tools")
+
+# Single source of truth for what each automatic check does, in plain
+# language. Referenced from the Step 5/6 verification gate; the Admin
+# panel's Cookbook Tools cards currently have their own longer versions
+# of this same content — worth reconciling into one shared source later,
+# flagged rather than silently left to drift.
+CHECK_NARRATIVES = {
+    "structure": (
+        "Reads every heading in the generated document and confirms each "
+        "section your paper type expects is present, and in the right order. "
+        "Does not check the *quality* of what's inside a section — only "
+        "that the section exists where it should."
+    ),
+    "blind": (
+        "Reads the actual text of every paragraph in the generated document "
+        "and confirms none of your declared identifying strings (name, "
+        "ORCID, institution) appear anywhere in the body. Does not check "
+        "document metadata (author/company properties) or headers/footers "
+        "— use Word's own 'Inspect Document' feature for those."
+    ),
+}
 
 
 # --------------------------------------------------------------------
@@ -219,10 +242,11 @@ def page_landing(settings):
     st.title(settings["app"]["title"])
     st.subheader(settings["app"]["tagline"])
     st.write(
-        "This tool scaffolds a regime-correct, structurally-checked "
-        "manuscript shell. It does not generate your paper's content, "
-        "evaluate your claims, or replace domain judgment — it scaffolds "
-        "and verifies; you still have to be right."
+        "This tool builds a correctly-structured manuscript shell for your "
+        "paper type, with automatic checks along the way. It does not "
+        "generate your paper's content, evaluate your claims, or replace "
+        "your own judgment — it builds the structure and checks it; you "
+        "still have to be right."
     )
 
     conn = get_conn()
@@ -235,11 +259,11 @@ def page_landing(settings):
 
     if regime_count == 0:
         st.warning(
-            "No regimes loaded in the database yet. Go to Admin (sidebar) "
+            "No paper types loaded yet. Go to Admin (sidebar) "
             "and click 'Run Ingest' to load config/regimes.yaml."
         )
     else:
-        st.success(f"{regime_count} manuscript regimes loaded and ready.")
+        st.success(f"{regime_count} paper types loaded and ready.")
 
     if st.button("Start a new manuscript →", type="primary", disabled=(regime_count == 0)):
         logger.info("User started a new manuscript from the landing page.")
@@ -276,20 +300,20 @@ def page_step1(conn):
 
     title = st.text_input("Working title", value=st.session_state.get("title", ""))
     claim = st.text_area(
-        "Central claim, in one sentence",
+        "What are you trying to show or prove? (one sentence)",
         value=st.session_state.get("claim", ""),
         height=80,
     )
     default_stmt = regime["regime_statement_template"]
     regime_statement = st.text_area(
-        "Regime statement — every later section gets checked against this",
+        "Guiding statement for this paper — every section below will be checked against it",
         value=st.session_state.get("regime_statement", default_stmt),
         height=80,
     )
 
     col1, col2 = st.columns([1, 1])
     with col2:
-        if st.button("Next: Evidence Intake →", type="primary"):
+        if st.button("Next: Supporting Details →", type="primary"):
             # Basic sanity check before letting the user proceed — an
             # empty title or claim isn't a hard block (unlike the
             # regime-specific field-unlock rules in Step 2), but warning
@@ -298,7 +322,7 @@ def page_step1(conn):
             if not title.strip():
                 st.warning("Working title is empty — you can still continue, but consider filling it in.")
             if not claim.strip():
-                st.warning("Central claim is empty — you can still continue, but consider filling it in.")
+                st.warning("That field is empty — you can still continue, but consider filling it in.")
 
             st.session_state.regime_idx = idx
             st.session_state.regime_code = regime["code"]
@@ -314,7 +338,7 @@ def page_step1(conn):
 # STEP 2 — Regime-Specific Evidence Intake
 # ======================================================================
 def page_step2(conn):
-    st.header("Step 2 — Regime-Specific Evidence Intake")
+    st.header("Step 2 — Supporting Details")
 
     try:
         regime = db.get_regime(conn, st.session_state.regime_code)
@@ -328,16 +352,15 @@ def page_step2(conn):
         # no longer exists in the DB — e.g. someone re-ran ingest with an
         # edited regimes.yaml that dropped a regime mid-session.
         st.error(
-            "The selected regime no longer exists in the database (was it "
-            "removed from regimes.yaml and re-ingested mid-session?). "
-            "Please go back to Step 1 and choose again."
+            "The paper type you selected is no longer available. "
+            "Please go back and choose again."
         )
         if st.button("← Back to Step 1"):
             st.session_state.step = 1
             st.rerun()
         return
 
-    st.caption(f"Regime: {regime['label']}")
+    st.caption(f"Paper type: {regime['label']}")
 
     evidence = st.session_state.get("evidence", {})
     for field in regime["evidence_fields"]:
@@ -357,11 +380,11 @@ def page_step2(conn):
         errors = unlock_rules.check(regime["code"], evidence)
     except Exception as e:
         logger.exception(f"unlock_rules.check raised for regime {regime['code']}")
-        st.error(f"Could not evaluate this regime's field-unlock rules: {e}")
-        errors = [f"Internal error evaluating unlock rules: {e}"]
+        st.error(f"Could not check whether you're ready to continue: {e}")
+        errors = [f"Internal error while checking: {e}"]
 
     if errors:
-        st.error("This regime's generative discipline blocks progress until:")
+        st.error("A few things need attention before you can continue:")
         for e in errors:
             st.markdown(f"- {e}")
 
@@ -395,10 +418,10 @@ def page_step3():
             height=100,
         )
         st.caption(
-            "Redaction here is a scaffold convenience only. Before real "
-            "submission, verify the actual rendered artifact with "
-            "blind_check_template.js — this checkbox does not substitute "
-            "for that check."
+            "This just tells the app which words to hide. Before you can "
+            "download anything, the app automatically double-checks that "
+            "none of these actually appear in the final document — see "
+            "Step 5."
         )
         if blind and not identifying_strings.strip():
             # Not a hard block (Step 2's unlock_rules pattern is reserved
@@ -470,7 +493,9 @@ def page_step4(conn):
     st.header("Step 4 — Manuscript Sections")
     st.caption(
         "Mirrors the manuscript-files screen of a typical submission system: "
-        "each section below is a component of the final document."
+        "each section below is a component of the final document. Where a "
+        "writing tip appears, treat it as a checklist item — nothing "
+        "re-checks it for you later."
     )
 
     mid = _ensure_manuscript(conn)
@@ -532,6 +557,38 @@ def page_step4(conn):
 # ======================================================================
 # STEP 5 — Review & Verify
 # ======================================================================
+def _content_hash(manuscript, sections):
+    """
+    Cheap fingerprint of everything that affects the generated docx, so
+    Step 5 only re-runs the verification gate when something actually
+    changed (editing a section, toggling blind mode) rather than on every
+    Streamlit rerun a click anywhere on the page triggers.
+    """
+    parts = [
+        manuscript.get("title") or "",
+        manuscript.get("claim") or "",
+        manuscript.get("regime_statement") or "",
+        str(manuscript.get("blind")),
+        "|".join(manuscript.get("identifying_strings") or []),
+    ]
+    for s in sections:
+        parts.append(f"{s['name']}:{s['content']}")
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+
+
+def _build_docx_bytes(manuscript, sections, footer_text):
+    """Builds the manuscript docx and returns raw bytes (not a BytesIO —
+    bytes survive being stashed in st.session_state across reruns more
+    predictably than a stateful file-like object)."""
+    doc = docx_export.export_manuscript(
+        manuscript, sections, footer_text,
+        blind=manuscript["blind"], identifying_strings=manuscript["identifying_strings"],
+    )
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 def page_step5(conn):
     st.header("Step 5 — Review & Verify")
     mid = st.session_state.get("manuscript_id")
@@ -547,10 +604,11 @@ def page_step5(conn):
         return
 
     try:
+        manuscript = db.get_manuscript(conn, mid)
         sections = db.get_sections(conn, mid)
     except Exception as e:
-        logger.exception(f"Failed to load sections for review, manuscript {mid}")
-        st.error(f"Could not load manuscript sections: {e}")
+        logger.exception(f"Failed to load manuscript/sections for review, manuscript {mid}")
+        st.error(f"Could not load manuscript data: {e}")
         return
 
     drafted = [s for s in sections if s["status"] == "drafted"]
@@ -559,12 +617,109 @@ def page_step5(conn):
         icon = "✅" if s["status"] == "drafted" else "⬜"
         st.write(f"{icon} {s['name']}")
 
-    ready = len(drafted) == len(sections)
-    if not ready:
+    if len(drafted) != len(sections):
         st.warning(
-            "Not every section has content yet. You can still download the "
-            "scaffold with TODO placeholders, or go back and fill more in."
+            "Not every section has content yet. Verification below still "
+            "runs — it checks section presence and order, not whether "
+            "content exists — but you can go back and fill more in first."
         )
+
+    st.subheader("Automatic Verification")
+    st.caption(
+        "This runs every time before you can download, no matter how the "
+        "document was built. See Instructions for a plain-language "
+        "explanation of what these checks do and don't catch."
+    )
+
+    try:
+        settings = load_settings()
+        footer_text = settings["attribution"]["footer_text"].format(**settings["author"])
+    except Exception as e:
+        logger.exception("Failed to load settings/footer for verification build.")
+        st.error(f"Could not prepare verification: {e}")
+        return
+
+    current_hash = _content_hash(manuscript, sections)
+    cached_hash = st.session_state.get("verified_hash")
+    needs_run = (cached_hash != current_hash) or ("verified_docx_bytes" not in st.session_state)
+
+    if needs_run:
+        with st.status("Running automatic verification…", expanded=True) as status:
+            status.write("Building manuscript document from current section content…")
+            try:
+                docx_bytes = _build_docx_bytes(manuscript, sections, footer_text)
+            except Exception as e:
+                logger.exception(f"Failed to build docx for verification, manuscript {mid}")
+                status.update(label="Verification failed — could not build document.", state="error")
+                st.error(f"Could not build the document to verify: {e}")
+                return
+            status.write("Document built.")
+
+            all_findings = []
+            overall_ok = True
+
+            status.write("---")
+            status.write("**Structural check** — " + CHECK_NARRATIVES["structure"])
+            expected_names = [s["name"] for s in sections]
+            tmp_path = os.path.join(BASE_DIR, "db", f"_verify_tmp_{mid}.docx")
+            try:
+                with open(tmp_path, "wb") as f:
+                    f.write(docx_bytes)
+                ok, findings = structural_check.check_structure(tmp_path, expected_names)
+            except Exception as e:
+                logger.exception(f"Structural check failed to run for manuscript {mid}")
+                ok, findings = False, [f"Structural check could not run: {e}"]
+
+            overall_ok = overall_ok and ok
+            if findings:
+                for f_line in findings:
+                    status.write(("⚠️ " if f_line.startswith("Note:") else "❌ ") + f_line)
+            else:
+                status.write("✅ No structural issues found.")
+            all_findings.extend(findings)
+
+            if manuscript["blind"]:
+                status.write("---")
+                status.write("**Blind-content check** — " + CHECK_NARRATIVES["blind"])
+                try:
+                    ok2, findings2 = structural_check.check_blind(tmp_path, manuscript["identifying_strings"])
+                except Exception as e:
+                    logger.exception(f"Blind check failed to run for manuscript {mid}")
+                    ok2, findings2 = False, [f"Blind check could not run: {e}"]
+                overall_ok = overall_ok and ok2
+                if findings2:
+                    for f_line in findings2:
+                        status.write("❌ " + f_line)
+                else:
+                    status.write("✅ No identifying strings found.")
+                all_findings.extend(findings2)
+
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+            st.session_state.verified_hash = current_hash
+            st.session_state.verified_docx_bytes = docx_bytes
+            st.session_state.verified_ok = overall_ok
+            st.session_state.verified_findings = all_findings
+
+            logger.info(f"Verification for manuscript {mid}: ok={overall_ok}, findings={len(all_findings)}")
+
+            if overall_ok:
+                status.update(label="Verification complete — no issues found.", state="complete")
+            else:
+                status.update(label=f"Verification complete — {len(all_findings)} issue(s) found.", state="error")
+    else:
+        if st.session_state.get("verified_ok"):
+            st.success("Verification complete — no issues found. (Cached — nothing changed since last run.)")
+        else:
+            st.error(f"Verification found {len(st.session_state.get('verified_findings', []))} issue(s). (Cached — nothing changed since last run.)")
+            for f_line in st.session_state.get("verified_findings", []):
+                st.write(("⚠️ " if f_line.startswith("Note:") else "❌ ") + f_line)
+        if st.button("Re-run verification", key="rerun_verify"):
+            st.session_state.pop("verified_hash", None)
+            st.rerun()
 
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -573,7 +728,7 @@ def page_step5(conn):
             st.rerun()
     with col2:
         if st.button("Next: Download →", type="primary", key="b5next"):
-            logger.info(f"Manuscript {mid} proceeding to download ({len(drafted)}/{len(sections)} sections drafted)")
+            logger.info(f"Manuscript {mid} proceeding to download step (verified_ok={st.session_state.get('verified_ok')})")
             st.session_state.step = 6
             st.rerun()
 
@@ -594,56 +749,286 @@ def page_step6(conn, settings):
 
     try:
         manuscript = db.get_manuscript(conn, mid)
-        sections = db.get_sections(conn, mid)
     except Exception as e:
-        logger.exception(f"Failed to load manuscript/sections for export, id={mid}")
-        st.error(f"Could not load manuscript data for export: {e}")
+        logger.exception(f"Failed to load manuscript for download, id={mid}")
+        st.error(f"Could not load manuscript data: {e}")
         return
 
     if manuscript is None:
         st.error(f"Manuscript id={mid} was not found in the database.")
         return
 
-    try:
-        footer_text = settings["attribution"]["footer_text"].format(**settings["author"])
-    except KeyError as e:
-        logger.error(f"Footer template error during export: {e}")
-        footer_text = "[Footer configuration error — see logs]"
+    docx_bytes = st.session_state.get("verified_docx_bytes")
+    verified_ok = st.session_state.get("verified_ok")
 
-    try:
-        doc = docx_export.export_manuscript(
-            manuscript, sections, footer_text,
-            blind=manuscript["blind"], identifying_strings=manuscript["identifying_strings"],
-        )
-        buf = io.BytesIO()
-        doc.save(buf)
-        buf.seek(0)
-    except Exception as e:
-        logger.exception(f"Failed to export docx for manuscript {mid}")
-        st.error(
-            "Could not generate the .docx file. This usually means "
-            f"python-docx is missing or misconfigured. Details: {e}"
-        )
+    if docx_bytes is None:
+        # Shouldn't normally happen — Step 5 always runs verification
+        # before this page is reachable via its own Next button — but a
+        # stale session (e.g. reloaded mid-flow) could land here without
+        # it. Send back to Step 5 rather than silently building an
+        # unverified file.
+        st.warning("This manuscript hasn't been verified yet in this session.")
+        if st.button("← Go to Step 5 to verify", type="primary"):
+            st.session_state.step = 5
+            st.rerun()
         return
 
-    fname = "manuscript_BLINDED_scaffold.docx" if manuscript["blind"] else "manuscript_scaffold.docx"
-    logger.info(f"Manuscript {mid} exported successfully as {fname}")
+    fname = "manuscript_draft_BLINDED.docx" if manuscript["blind"] else "manuscript_draft.docx"
 
-    st.download_button(
-        "⬇ Download manuscript scaffold (.docx)",
-        data=buf,
-        file_name=fname,
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        type="primary",
-    )
+    if verified_ok:
+        st.success("This document passed automatic verification.")
+        st.download_button(
+            "⬇ Download manuscript draft (.docx)",
+            data=docx_bytes,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            type="primary",
+        )
+        logger.info(f"Manuscript {mid} downloaded (verified_ok=True)")
+    else:
+        findings = st.session_state.get("verified_findings", [])
+        st.error(
+            f"This document did NOT pass automatic verification "
+            f"({len(findings)} issue(s) found). Downloading it means "
+            "delivering something with a known structure or blind-review "
+            "problem."
+        )
+        for f_line in findings:
+            st.write(("⚠️ " if f_line.startswith("Note:") else "❌ ") + f_line)
+        override = st.checkbox(
+            "I understand the risk and want to download anyway (not recommended)."
+        )
+        if override:
+            st.download_button(
+                "⬇ Confirm download (unverified)",
+                data=docx_bytes,
+                file_name=fname,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+            logger.warning(f"Manuscript {mid} downloaded WITH override despite verified_ok=False ({len(findings)} findings)")
+
     st.caption(
-        "This is a scaffold, not a finished manuscript. Run "
-        "structural_lint.js (and blind_check_template.js if applicable) "
-        "from the Manuscript Engineering Cookbook before any real delivery."
+        "This is a structured starting point, not a finished manuscript — "
+        "every section still needs your real writing."
     )
+
+    with st.expander("If you keep editing this file somewhere else later"):
+        st.write(
+            "The checks above only cover the file exactly as downloaded "
+            "right now. If you continue editing it in a different tool or "
+            "pipeline afterward, re-run these same checks on the final "
+            "version before you actually submit it — Admin can run them "
+            "against any file, not just ones built here."
+        )
+        if st.button("→ Re-check the structure of a later version", key="jump_lint_step6"):
+            st.session_state.nav_radio = "Admin"
+            st.session_state.admin_jump_to = "structural_lint.js"
+            st.rerun()
+        if manuscript["blind"]:
+            if st.button("→ Re-check that names stay hidden in a later version", key="jump_blind_step6"):
+                st.session_state.nav_radio = "Admin"
+                st.session_state.admin_jump_to = "blind_check_template.js"
+                st.rerun()
+
     if st.button("← Back", key="b6back"):
         st.session_state.step = 5
         st.rerun()
+
+
+# ======================================================================
+# INSTRUCTIONS
+# ======================================================================
+def page_instructions(conn, settings):
+    """
+    A standalone tab, not a step in the manuscript flow. Forked by
+    audience: a researcher trying to use the tool and someone evaluating
+    or extending it want fundamentally different content, and burying
+    both under one linear page meant the first reader had to wade through
+    design rationale and test scripts meant for the second. README.md
+    remains the canonical, fuller version of the evaluator-facing content
+    (design rationale, full test path) — the evaluator branch here points
+    to it rather than duplicating it, so the two can't quietly drift apart.
+    """
+    st.header("Instructions")
+
+    audience = st.radio(
+        "Who's reading this right now?",
+        ["I'm writing a paper", "I'm evaluating this tool"],
+        horizontal=True,
+        key="instructions_audience",
+    )
+
+    if audience == "I'm writing a paper":
+        st.write(
+            "This tool builds a correctly-structured, section-by-section "
+            "starting document for your paper, and automatically checks "
+            "it before you download. It does not write your paper's "
+            "content, evaluate your claims, or replace your own judgment."
+        )
+
+        st.subheader("How the flow works")
+        st.markdown(
+            "1. **Manuscript Details** — title, what you're trying to "
+            "show, paper type.\n"
+            "2. **Supporting Details** — fields specific to your paper "
+            "type; some types require you to fill in a specific thing "
+            "before you can continue (see the reference table below).\n"
+            "3. **Masked Review** — optional; lists names/words that "
+            "should be hidden if your venue requires anonymous review.\n"
+            "4. **Sections** — every section your paper type needs, each "
+            "editable on its own, with a done/not-done status.\n"
+            "5. **Review & Verify** — automatic checks run here, before "
+            "you can download.\n"
+            "6. **Download** — the .docx file."
+        )
+
+        st.subheader("Paper types — reference")
+        st.write(
+            "What each paper type means, and — once you pick one in "
+            "Step 1 — the writing tips you'll see while drafting each of "
+            "its sections. Click a tab to switch types."
+        )
+        try:
+            regimes = db.list_regimes(conn)
+        except Exception as e:
+            logger.exception("Failed to load regimes for Instructions tab.")
+            st.error(f"Could not load the paper-type table: {e}")
+            regimes = []
+
+        if regimes:
+            tabs = st.tabs([r["label"] for r in regimes])
+            for tab, r in zip(tabs, regimes):
+                with tab:
+                    st.write(r["description"])
+                    sec_names = " → ".join(s["name"] for s in r["sections"])
+                    st.caption("Sections, in order:")
+                    st.write(sec_names)
+                    hints = [s for s in r["sections"] if s.get("hint")]
+                    if hints:
+                        st.caption("Writing tips shown while drafting these sections:")
+                        for s in hints:
+                            st.markdown(f"- **{s['name']}**: {s['hint']}")
+                    if r.get("unlock_rule"):
+                        st.caption("This type requires one extra thing before you can continue past Step 2 (see the form for details).")
+
+        st.subheader("What this tool does — and where its responsibility ends")
+        st.error(
+            "**The hand-off, stated plainly:** this tool's job ends at a "
+            "correctly-structured, clearly-labeled starting document. "
+            "Everything after that — whether the claim is true, whether "
+            "the evidence actually supports it, whether the writing is "
+            "any good, whether the citations are real — is your "
+            "responsibility, not this tool's. Nothing in this app reads "
+            "or evaluates the *content* you type into a section; it only "
+            "tracks whether a section has content at all."
+        )
+        st.markdown(
+            "**Concretely, this tool does:**\n"
+            "- Ask which type of paper you're writing, and hold every "
+            "section to that type's own stated job.\n"
+            "- Stop you at the small number of things that are genuinely "
+            "checkable (a required field being empty, an item missing its "
+            "required follow-up).\n"
+            "- Show (not enforce) writing tips at the section they apply "
+            "to.\n"
+            "- Produce a downloadable .docx with every section labeled, "
+            "and placeholders anywhere content is missing.\n"
+            "- Automatically double-check the document's structure and, "
+            "if you used masked review, that nothing identifying leaked "
+            "through — every time, before you can download.\n\n"
+            "**This tool does not:**\n"
+            "- Generate, draft, or suggest manuscript content of any "
+            "kind.\n"
+            "- Evaluate whether a claim, a query result, or a citation is "
+            "correct.\n"
+            "- Check document metadata (author/company file properties) "
+            "or headers/footers for identifying content — use Word's own "
+            "'Inspect Document' feature for those.\n"
+            "- Call any AI/LLM. The API-key settings exist for a future "
+            "feature; nothing in this version uses them."
+        )
+
+    else:  # "I'm evaluating this tool"
+        st.subheader("Intent and purpose")
+        st.write(
+            "A cluster of recent tools checks the *content* of a finished "
+            "manuscript — does a citation exist, does it support the "
+            "claim attributed to it, do numbers agree across sections. "
+            "None of them help with actually *building* the manuscript in "
+            "the first place, especially when it's written iteratively, "
+            "with an AI tool making structural edits across many "
+            "rounds.\n\n"
+            "This tool helps with the building, not the writing: it gives "
+            "you a correctly-structured section-by-section shell for your "
+            "paper type, runs automatic checks, and surfaces the specific "
+            "habits the Manuscript Engineering Cookbook found useful for "
+            "avoiding recurring mistakes in AI-assisted manuscript "
+            "construction."
+        )
+
+        st.subheader("Design")
+        st.write(
+            "Three ideas drive the design, in order of how much they "
+            "shape the UI:\n\n"
+            "1. **Different kinds of papers need different checks.** A "
+            "methodology paper's most common mistake (the worked example "
+            "swallowing the actual method) isn't a systematic review's "
+            "most common mistake (search results quietly shaping the "
+            "inclusion criteria after the fact). One generic template "
+            "can't serve both well.\n"
+            "2. **Some checks are enforced, some are just shown.** Step 2 "
+            "blocks you from continuing for the small number of things "
+            "that can be checked mechanically (is this field filled in, "
+            "does every item have the follow-up it needs). The writing "
+            "tips shown while you draft each section are the opposite "
+            "case — genuine judgment calls nothing can automatically "
+            "verify, so they're shown as reminders, not enforced.\n"
+            "3. **Settings live outside the code.** Every paper type, "
+            "section, hint, and personalization detail is in "
+            "`config/*.yaml`, loaded into the database by Admin → Run "
+            "Ingest. Adding an eighth paper type doesn't require touching "
+            "any Python."
+        )
+
+        st.subheader("Target audience")
+        st.write(
+            "Individual researchers and small teams writing a manuscript "
+            "iteratively, especially with an AI tool making structural "
+            "edits across many rounds — the exact situation where "
+            "mistakes like silently dropped sections, false 'all good' "
+            "checks, and botched renumbering actually happen. Not aimed "
+            "at journals, publishers, or institutional workflows — the "
+            "single shared admin password and lack of multi-user login "
+            "make that explicit (see Known Gaps in the README)."
+        )
+
+        st.subheader("Full test path")
+        st.write(
+            "The complete step-by-step test path — including the "
+            "specific case that once let an identifying name slip past "
+            "redaction — lives in **README.md, 'Testing the flow'**. Kept "
+            "there rather than duplicated here, since a page and a "
+            "README describing the same test independently is exactly "
+            "the kind of drift this project tries to avoid elsewhere "
+            "(see CHECK_NARRATIVES in the code, or the earlier tool-copy "
+            "drift between the Cookbook zip and the live CEA tools)."
+        )
+        st.caption(
+            "Note: within this app's own flow, both automatic checks are "
+            "close to impossible to fail by construction. They earn their "
+            "keep mainly on outside files brought in through Admin, not "
+            "on this app's own well-formed output."
+        )
+
+        st.subheader("Where this fits in the broader project")
+        st.write(
+            "This is a reference implementation of the Manuscript "
+            "Engineering Cookbook — a set of practices for the "
+            "*construction* of a manuscript (not its content), developed "
+            "against a real, ongoing paper and generalized to seven "
+            "distinct paper types. See the repository README for the "
+            "Cookbook itself and the tools this app wraps."
+        )
 
 
 # ======================================================================
@@ -653,6 +1038,11 @@ def page_admin(settings):
     st.header("Admin")
 
     if not st.session_state.get("admin_authed"):
+        st.caption(
+            "Default password is set in `config/settings.yaml` — change "
+            "it there before putting this app anywhere beyond your own "
+            "machine."
+        )
         pw = st.text_input("Admin password", type="password")
         if st.button("Log in"):
             # Deliberately simple: this reference implementation treats
@@ -756,6 +1146,206 @@ def page_admin(settings):
                 logger.exception("Failed to write llm_config.yaml.")
                 st.error(f"Could not write the file: {e}")
 
+    # ---- Cookbook Tools ----
+    st.subheader("Cookbook Tools")
+    if st.session_state.get("admin_jump_to"):
+        jump_target = st.session_state.pop("admin_jump_to")
+        st.info(f"Jumped here from Instructions → {jump_target}")
+
+    st.caption(
+        "These tools verify a manuscript's *construction*, not its content "
+        "— see the Instructions tab for the full explanation. This app's "
+        "own docx export (Step 6) does not produce a build.js, so most of "
+        "these operate on a directory you point them at — typically the "
+        "Node CLI's `manuscript-output/` folder, not this app's own output."
+    )
+
+    if not tool_runner.node_available():
+        st.warning(
+            "`node` was not found on PATH in this environment. "
+            "structural_lint.js and blind_check_template.js require "
+            "Node.js — install it, or run these tools directly in a "
+            "terminal instead."
+        )
+
+    # --- structural_lint.js ---
+    with st.container(border=True):
+        st.markdown("#### structural_lint.js")
+        st.write(
+            "**What it does:** static analysis of a `build.js` file. "
+            "Generic — works on any project's build.js as-is, no per-"
+            "project editing required first."
+        )
+        st.markdown(
+            "**Checks:** every `buildX()` function is registered in "
+            "`SECTIONS` (and vice versa) · heading number sequence (H1s, "
+            "sub-numbers) · in-text Section/Appendix references resolve to "
+            "a real heading · paren balance · orphaned function bodies "
+            "(the anchor-drop signature) · Figure/Table references resolve "
+            "to a real caption."
+        )
+        st.markdown(
+            "**Caution:** regex-based, not a real parser — it can't tell "
+            "a commented-out `SECTIONS` entry from a live one. The bundled "
+            "reference template itself fails this check for exactly that "
+            "reason (its example section list has commented-out entries "
+            "the regex still picks up). A clean pass means no *detected* "
+            "structural break, not proof of correctness."
+        )
+        target_dir_lint = st.text_input(
+            "Directory containing your build.js",
+            value=st.session_state.get("lint_target_dir", ""),
+            key="lint_target_dir_input",
+            placeholder="/workspaces/manuscript-engineer/manuscript-output",
+        )
+        if st.button("Run structural_lint.js", key="run_lint"):
+            st.session_state.lint_target_dir = target_dir_lint
+            if not target_dir_lint.strip():
+                st.error("Enter a directory first.")
+            else:
+                ok, out, err = tool_runner.run_structural_lint(
+                    os.path.join(TOOLS_DIR, "structural_lint.js"),
+                    target_dir_lint.strip(),
+                )
+                logger.info(f"structural_lint.js run against {target_dir_lint}: success={ok}")
+                if ok:
+                    st.success("No structural errors found.")
+                else:
+                    st.error("structural_lint.js found problems, or could not run:")
+                if out:
+                    st.code(out, language=None)
+                if err:
+                    st.code(err, language=None)
+
+    # --- blind_check_template.js ---
+    with st.container(border=True):
+        st.markdown("#### blind_check_template.js")
+        st.write(
+            "**What it does:** regenerates your blinded document fresh and "
+            "reads the actual rendered docx XML — real content, not source "
+            "code — checking a declared list of identifying strings is "
+            "genuinely absent."
+        )
+        st.markdown(
+            "**Checks:** author name, ORCID, institution, and any other "
+            "declared identifying phrase do not appear anywhere in the "
+            "real rendered `manuscript_BLINDED.docx`."
+        )
+        st.markdown(
+            "**Caution:** this is a *different kind* of check from "
+            "structural_lint.js (content-leak vs. code-structure) — run "
+            "both, neither substitutes for the other. It is NOT generic: "
+            "it must already be customized for your project (identifying "
+            "strings, build command, output path). The Node CLI's "
+            "generate.js fills these in automatically when you choose "
+            "masked review during classification — this button runs "
+            "whatever's already sitting in the target directory, it does "
+            "not fill in a template for you. This app's own Step 3 "
+            "redaction is a separate, weaker convenience — not "
+            "equivalent to this check."
+        )
+        target_dir_blind = st.text_input(
+            "Directory containing your customized blind_check_template.js",
+            value=st.session_state.get("blind_target_dir", ""),
+            key="blind_target_dir_input",
+            placeholder="/workspaces/manuscript-engineer/manuscript-output",
+        )
+        if st.button("Run blind_check_template.js", key="run_blind"):
+            st.session_state.blind_target_dir = target_dir_blind
+            if not target_dir_blind.strip():
+                st.error("Enter a directory first.")
+            else:
+                ok, out, err = tool_runner.run_blind_check(target_dir_blind.strip())
+                logger.info(f"blind_check_template.js run against {target_dir_blind}: success={ok}")
+                if ok:
+                    st.success("No identifying strings found in the blinded output.")
+                else:
+                    st.error("blind_check_template.js found a leak, or could not run:")
+                if out:
+                    st.code(out, language=None)
+                if err:
+                    st.code(err, language=None)
+
+    # --- citation_verification_template.py ---
+    with st.container(border=True):
+        st.markdown("#### citation_verification_template.py")
+        st.write(
+            "**What it does:** structured CrossRef lookup per citation — "
+            "title/journal/year matching against what your manuscript "
+            "claims. Not a text search; catches mismatches automatically."
+        )
+        st.markdown(
+            "**Checks:** for each citation with a DOI, an exact CrossRef "
+            "lookup confirms title/journal/year match what you expect. "
+            "For citations without a DOI, a bibliographic search is run "
+            "(less reliable — verify matches by eye)."
+        )
+        st.markdown(
+            "**Caution:** does **not** check volume/page numbers — a real "
+            "page-range error once passed a clean run undetected for "
+            "exactly this reason; always manually diff those against your "
+            "citation log. Requires network access to CrossRef and the "
+            "`requests` package. Not generic: `CITATIONS` must already be "
+            "filled in with your paper's real references before running."
+        )
+        target_dir_cite = st.text_input(
+            "Directory containing your filled-in citation_verification_template.py",
+            value=st.session_state.get("cite_target_dir", ""),
+            key="cite_target_dir_input",
+            placeholder="/workspaces/manuscript-engineer/manuscript-output",
+        )
+        if st.button("Run citation_verification_template.py", key="run_cite"):
+            st.session_state.cite_target_dir = target_dir_cite
+            if not target_dir_cite.strip():
+                st.error("Enter a directory first.")
+            else:
+                ok, out, err = tool_runner.run_citation_verification(target_dir_cite.strip())
+                logger.info(f"citation_verification_template.py run against {target_dir_cite}: success={ok}")
+                if ok:
+                    st.success("No mismatches detected (see caution above — volume/page not checked).")
+                else:
+                    st.error("citation_verification_template.py found mismatches, or could not run:")
+                if out:
+                    st.code(out, language=None)
+                if err:
+                    st.code(err, language=None)
+
+    # --- safe_renumber_template.js — reference only, deliberately no Run button ---
+    with st.container(border=True):
+        st.markdown("#### safe_renumber_template.js")
+        st.write(
+            "**What it does:** single-pass renumbering via an explicit "
+            "mapping (e.g. `{\"3\": \"4\", \"2\": \"3\"}`), avoiding the "
+            "double-shift bug sequential find-replace causes."
+        )
+        st.markdown(
+            "**Checks:** nothing automatically — it performs the "
+            "substitution you specify, it does not verify your mapping is "
+            "correct or that every match is a genuine section reference "
+            "rather than a coincidence (a citation year, a stray decimal)."
+        )
+        st.markdown(
+            "**Caution — no Run button here, deliberately:** every other "
+            "tool on this page is safe to invoke against a directory you "
+            "name, because either it's fully generic (structural_lint.js) "
+            "or it fails loudly if not yet customized (blind_check, "
+            "citation_verification). This one is different: run unedited, "
+            "it silently applies its own example mapping "
+            "(`{\"7\":\"8\", \"6\":\"7\", ...}`) to whatever build.js it finds "
+            "— a wrong-but-successful run, not a loud failure. Per the "
+            "Cookbook: grep every occurrence of your target numbers by "
+            "hand and confirm each is a real reference before running "
+            "this. Copy it into your project, edit the `MAP`, then run it "
+            "yourself from a terminal:"
+        )
+        st.code("node safe_renumber_template.js", language="bash")
+        with st.expander("View reference source"):
+            try:
+                with open(os.path.join(TOOLS_DIR, "safe_renumber_template.js")) as f:
+                    st.code(f.read(), language="javascript")
+            except FileNotFoundError:
+                st.error("Bundled reference copy not found — check cookbook_tools/.")
+
 
 # ======================================================================
 # MAIN — navigation dispatcher
@@ -784,9 +1374,16 @@ def main():
 
     with st.sidebar:
         st.markdown(f"### {settings['app']['title']}")
-        nav = st.radio("Navigate", ["Manuscript", "Admin"], index=0)
+        if "nav_radio" not in st.session_state:
+            st.session_state.nav_radio = "Manuscript"
+        nav = st.radio("Navigate", ["Manuscript", "Instructions", "Admin"], key="nav_radio")
 
     conn = get_conn()
+
+    if nav == "Instructions":
+        page_instructions(conn, settings)
+        footer()
+        return
 
     if nav == "Admin":
         page_admin(settings)
