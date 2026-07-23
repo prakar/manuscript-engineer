@@ -58,4 +58,30 @@ def check(regime_code, evidence):
                 "actually tested this on) before writing your introduction."
             )
 
+    if regime_code == "C8":
+        if not evidence.get("hypotheses", "").strip():
+            errors.append(
+                "State your pre-specified hypotheses before locking the protocol."
+            )
+        if not evidence.get("protocol_lock_date", "").strip():
+            errors.append(
+                "State the date your protocol was or will be locked — the "
+                "Introduction and Methods become frozen from that date."
+            )
+
+    if regime_code == "C9":
+        if not evidence.get("validation_summary", "").strip():
+            errors.append(
+                "Describe how you validated the data's quality before writing "
+                "Usage Notes — asserting quality without describing the check "
+                "is exactly what this section exists to prevent."
+            )
+
+    if regime_code == "C10":
+        if not evidence.get("word_limit", "").strip():
+            errors.append(
+                "State the target venue's word limit — this format is defined "
+                "by its length constraint, not just its content."
+            )
+
     return errors

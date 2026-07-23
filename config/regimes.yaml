@@ -129,3 +129,50 @@ regimes:
     evidence_fields:
       - {key: "evidence_base", label: "Evidence base, stated honestly (e.g. 'N=1 worked case')", type: "text", required: true}
     unlock_rule: "evidence_base_required"
+
+  - code: C8
+    label: "Registered Report"
+    description: "Two-stage format — methods and hypotheses peer-reviewed and locked before data collection; results added afterward without altering the approved plan."
+    regime_statement_template: "This is a Registered Report, so its job is to test a pre-specified hypothesis with a pre-approved method, not to explore the data and report whatever was found."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "Everything here becomes frozen once the protocol is locked — after that point, only stylistic corrections are allowed, not new claims or reframed hypotheses."}
+      - {name: "Related Work", hint: null}
+      - {name: "Methods", hint: "Also frozen after protocol lock. State every planned analysis explicitly now — anything not listed here that appears in Results later must be labeled exploratory, not confirmatory."}
+      - {name: "Results", hint: "Report only the pre-registered analyses as confirmatory. Any additional analysis must be clearly separated and labeled post hoc/exploratory — this distinction is the entire point of the format."}
+      - {name: "Discussion", hint: "Draft your own anticipated critiques, answered with the manuscript's own evidence."}
+      - {name: "Limitations", hint: null}
+    evidence_fields:
+      - {key: "hypotheses", label: "Pre-specified hypotheses (state before protocol lock)", type: "textarea", required: true}
+      - {key: "protocol_lock_date", label: "Date the protocol was/will be locked (YYYY-MM-DD) — nothing above may change after this without disclosure", type: "text", required: true}
+    unlock_rule: "protocol_locked"
+
+  - code: C9
+    label: "Data Descriptor"
+    description: "Describes a new, open dataset for reuse — does not test or report whether the data supports any hypothesis or conclusion."
+    regime_statement_template: "This is a data descriptor, so its job is to describe the dataset so others can reuse it, not to analyze what it shows or argue a conclusion from it."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Background and Summary", hint: "Re-check framing after every structural addition. State why the dataset was created — not what it proves."}
+      - {name: "Methods", hint: "Describe data collection and processing completely enough for independent reuse — this section has no length limit for a reason; do not compress it to match the rest of the paper's tone."}
+      - {name: "Data Records", hint: "Describe the dataset's structure and where it lives (repository, format, size) — this is documentation, not narrative."}
+      - {name: "Technical Validation", hint: "Describe objective, independently-checkable quality checks you ran (completeness, consistency, spot-checks) — asserting the data is 'high quality' without describing how you verified it is exactly what this section exists to prevent."}
+      - {name: "Usage Notes", hint: "State known limitations or caveats for reuse. Do NOT include results, discussion, or hypothesis-driven analysis here — that content belongs in a separate paper, not this one, by this format's own rule."}
+    evidence_fields:
+      - {key: "dataset_location", label: "Where the dataset is deposited (repository name + DOI/accession)", type: "text", required: true}
+      - {key: "validation_summary", label: "How you validated the data's quality (state before drafting Usage Notes)", type: "textarea", required: true}
+    unlock_rule: "validation_required"
+
+  - code: C10
+    label: "Short Report"
+    description: "A compressed original-research format — time-sensitive or narrowly-scoped findings under a strict length limit, not a shrunken version of a full paper."
+    regime_statement_template: "This is a short report, so its job is to report one focused finding concisely, not to cover everything a full paper would."
+    sections:
+      - {name: "Abstract", hint: null}
+      - {name: "Introduction", hint: "Cite only what's essential to motivate the one finding — no separate Related Work section; anything more belongs in a full-length paper instead."}
+      - {name: "Methods", hint: null}
+      - {name: "Results and Discussion", hint: "Deliberately merged, not an oversight — do not restate results in Discussion before interpreting them; space doesn't allow it."}
+      - {name: "Limitations", hint: null}
+    evidence_fields:
+      - {key: "word_limit", label: "Target venue's stated word limit for this format", type: "text", required: true}
+    unlock_rule: "word_limit_required"
